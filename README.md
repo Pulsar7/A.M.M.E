@@ -1,4 +1,4 @@
-# A.M.M.E
+# A.M.M.E (2-D)
 Eine einfache Verschlüsselung, welche mit Vektoren im 2-Dimensionalen Raum rechnen. 
 
 # Funktion
