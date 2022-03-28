@@ -1,5 +1,5 @@
 # A.M.M.E (2-D)
-Eine einfache Verschlüsselung, welche mit Vektoren im 2-Dimensionalen Raum rechnet.
+Eine einfache Verschlüsselung, welche mit Geradengleichungen im 2-Dimensionalen Raum rechnet dessen Schnittwinkel zu Buchstaben und Zeichen zugeteilt werden.
 
 # Funktion
 
