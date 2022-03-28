@@ -6,7 +6,7 @@ Manifactured
 Menial
 Encryption
 """
-import random,string,math,os,sys,sympy,pprint
+import random,string,math,sys,sympy,pprint
 sys.dont_write_bytecode = True
 
 class AMME():
@@ -120,6 +120,15 @@ class AMME():
             key = key+f"{element}-{key_data[element]}+"
         print(f"[+] Encrypted-Message: {encrypted_msg}")
         print(f"[+] Key: {key}")
+        try:
+            dateiname = f"encrypted_message_{len(nachricht)}.txt"
+            file = open(dateiname,'a')
+            file.write(encrypted_msg+"\n"+"\n"+key)
+            file.close()
+            print(f"[+] Abgespeichert in {dateiname}")
+        except Exception as error:
+            print("[!] Datei konnte nicht abgespeichert werden!")
+            print(error)
 
     def run(self):
         option = input("d[ecrypt]|e[ncrypt]: ")
@@ -197,7 +206,6 @@ class AMME():
         print(f"[+] Decrypted Message> {decrypted_msg}")
 
 if (__name__ == '__main__'):
-    #os.system("clear") #Linux
     amme = AMME()
     amme.run()
 
