@@ -1,10 +1,5 @@
 """
 Python 3.8.10
-
-Artificial
-Manifactured
-Menial
-Encryption
 """
 import random,string,math,sys,sympy,pprint
 sys.dont_write_bytecode = True
