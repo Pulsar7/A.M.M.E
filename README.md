@@ -8,7 +8,7 @@
 
 * :point_right: [Explanation](#explanation)
 * :point_right: [Installation](#installation)
-* :point_right: [Example] (#example)
+* :point_right: [Example](#example)
 * :point_right: [ToDo](#todo)
 * :point_right: [Suggestions & Reports](#suggestions--reports)
 
