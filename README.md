@@ -54,6 +54,7 @@ When it comes to decryption, the above part is pretty much the same. Only that a
     Please insert key> [INSERTED KEY FROM Illustration 1]
     
 **Output: (Illustration 2)**
+
 ![Example 2](https://github.com/Pulsar7/A.M.M.E/blob/main/example2.png)
 
 ## ToDo
