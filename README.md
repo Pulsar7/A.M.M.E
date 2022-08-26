@@ -44,9 +44,17 @@ When it comes to decryption, the above part is pretty much the same. Only that a
 
 ## Example
 
-    python3 amme.py --encryption --message "SECRET MESSAGE"
+    python3 amme.py --encrypt --message "SECRET MESSAGE"
+    cat msg.txt
+**Output: (Illustration 1)**
+![Example 1](https://github.com/Pulsar7/A.M.M.E/blob/main/example1.png)
     
+    python3 amme.py --decrypt --message "[INSERTED MESSAGE FROM Illustration 1]"
     
+    Please insert key> [INSERTED KEY FROM Illustration 1]
+    
+**Output: (Illustration 2)**
+![Example 2](https://github.com/Pulsar7/A.M.M.E/blob/main/example2.png)
 
 ## ToDo
 
