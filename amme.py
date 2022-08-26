@@ -1,207 +1,357 @@
 """
-Python 3.8.10
+> Python 3.8.10
+> A.M.M.E (Version 2.0)
+> https://github.com/Pulsar7/A.M.M.E/blob/main/README.md
 """
-import random,string,math,sys,sympy,pprint
-sys.dont_write_bytecode = True
+import math,sympy,sys,argparse,os,string,random
+from rich.console import Console
+from rich import (pretty)
+from rich.columns import Columns
+from rich.panel import Panel
 
-class AMME():
-    def __init__(self):
-        self.data = {
-            'letters': {}
-        }
-        self.alphabet = string.ascii_uppercase+" "+","+"!"+"?"+"Ü"+"Ö"+"Ä"
-        self.min_number = 0
-        self.max_number = 55
-        self.alp_while_code = True
+pretty.install()
 
-    def generate_vectors(self,letter):
-        alphabet_vectors = {}
-        #generate 8 vectors, or 4 vectors per letter
-        for i in range(0,2):
-            alphabet_vectors[letter] = {
-                'u1': (random.randint(self.min_number,self.max_number),
-                    random.randint(self.min_number,self.max_number)),
-                'v1': (random.randint(self.min_number,self.max_number),
-                    random.randint(self.min_number,self.max_number)),
-                'u2': (random.randint(self.min_number,self.max_number),
-                    random.randint(self.min_number,self.max_number)),
-                'v2': (random.randint(self.min_number,self.max_number),
-                    random.randint(self.min_number,self.max_number)),
-            }
-        return alphabet_vectors
+class Encryption():
+    def __init__(self,console,all_characters,vector_min_num,vector_max_num,max_failed_number,save_filepath,fast_mode):
+        (self.console,self.all_characters,self.calculated,self.fast_mode) = (console,all_characters,{},fast_mode)
+        self.encr_state = True
+        (self.min_num,self.max_num,self.max_failed_number,self.save_filepath) = (vector_min_num,vector_max_num,
+            max_failed_number,save_filepath
+        )
+        self.angles_counter = 0
 
-    def calculate_letter(self,this_letter):
-        status = True
-        if (len(this_letter) > 0):
-            alphabet_vectors = self.generate_vectors(this_letter)
-            #calculate intersection
-            for letter in alphabet_vectors:
-                u1 = alphabet_vectors[letter]['u1']
-                v1 = alphabet_vectors[letter]['v1']
-                v2 = alphabet_vectors[letter]['v2']
-                u2 = alphabet_vectors[letter]['u2']
+    def generate_vectors(self):
+        # d_v_1 = "direction-vector-1"
+        # d_v_2 = "direction-vector-2"
+        # s_v_1 = "support-vector-1"
+        # s_v_2 = "support_vector-2"
+        elements = [
+            'd_v_1',
+            's_v_1',
+            's_v_2',
+            'd_v_2'
+        ]
+        while True:
+            vectors = {}
+            for element in elements:
+                vectors[element] = (random.randint(self.min_num,self.max_num),random.randint(self.min_num,self.max_num))
+            t = sympy.symbols("t") # creating symbols for the equation
+            solution_1 = sympy.solve(sympy.Eq((vectors['d_v_1'][0]*t),(vectors['d_v_2'][0])),t)
+            solution_2 = sympy.solve(sympy.Eq((vectors['d_v_1'][1]*t),(vectors['d_v_2'][1])),t)
+            if (solution_1 != solution_2):
+                break
+        return vectors
 
-                (r, s) = sympy.symbols("r s")
-                equation_1 = sympy.Eq(
-                    (u1[0]+v1[0]*s),
-                    (u2[0]+v2[0]*r)
-                )
-                equation_2 = sympy.Eq(
-                    (u1[1]+v1[1]*s),
-                    (u2[1]+v2[1]*r)
-                )
-                solution = sympy.solve((equation_1,equation_2),(r,s))
-                #check if it's a true solution
-                if ((u1[0]+v1[0]*solution[s]) == u2[0]+v2[0]*solution[r]):
-                    schnittpunkt_found = True
+    def calculate_angle(self,element):
+        (vectors,angle) = ({},None)
+        self.calculated[element] = {}
+        self.calculated[element]['angle'] = angle
+        vectors = self.generate_vectors()
+        if (len(vectors) > 0):
+            # equate straight line equations
+            (r,s) = sympy.symbols("r s") # creating symbols for the equation
+            equation_a = sympy.Eq((vectors['s_v_1'][0]+r*vectors['d_v_1'][0]),
+                (vectors['s_v_2'][0]+s*vectors['d_v_2'][0]))
+            equation_b = sympy.Eq((vectors['s_v_1'][1]+r*vectors['d_v_1'][1]),
+                (vectors['s_v_2'][1]+s*vectors['d_v_2'][1]))
+            solution = sympy.solve((equation_a,equation_b),(r,s))
+            if (len(solution) > 1): # check if there is any solution
+                # check if both solutions are the same
+                if (
+                    (vectors['s_v_1'][0]+solution[r]*vectors['d_v_1'][0]) == (vectors['s_v_2'][0]+solution[s]*vectors['d_v_2'][0]) and (vectors['s_v_1'][1]+solution[r]*vectors['d_v_1'][1]) == (vectors['s_v_2'][1]+solution[s]*vectors['d_v_2'][1])):
+                    # found intersection
+                    s = (vectors['d_v_1'][0]*vectors['d_v_2'][0]+vectors['d_v_1'][1]*vectors['d_v_2'][1]) # calculating the scalar product of the direction vectors 'd_v_1' & 'd_v_2'
+                    # self.console.log(s)
+                    one = ((vectors['d_v_1'][0])**2+(vectors['d_v_1'][1])**2)
+                    two = ((vectors['d_v_2'][0])**2+(vectors['d_v_2'][1])**2)
+                    if (one >= 0 & two >= 0): # check if the square roote is not negative
+                        p = ((math.sqrt(one))*(math.sqrt(two))) # calculating the product of the two lengths
+                        # calculating angle between the line-equations
+                        a_rad = math.acos((s)/(p)) # in RAD
+                        a_deg = (a_rad*(360/(2*math.pi))) # in DEGREE
+                        if (self.fast_mode == "True"):
+                            a_deg = round(a_deg,5)
+                        else:
+                            a_deg = round(a_deg,15)
+                        angle = a_deg
+                    else:
+                        # self.console.log("[red]SQUARE ROOTE IS NEGATIVE")
+                        pass
                 else:
-                    schnittpunkt_found = False
-                    status = False
-                if (schnittpunkt_found == True):
-                    s = (
-                        u1[0]+solution[s]*v1[0],
-                        u1[1]+solution[s]*v1[1]
-                    )
-                    F = v1[0]*v2[0]+v1[1]*v2[1]
-                    if (F < 0):
-                        F = -F
-                    len_vec = (
-                        math.sqrt(v1[0]**2+v1[1]**2)*math.sqrt(v2[0]**2+v2[1]**2)
-                    )
-                    winkel_rad = math.acos(F/len_vec) #in rad
-                    #convert in degree (360° = 2*PI)
-                    winkel = round(winkel_rad*(360/(2*math.pi)))#in Degree
-                    for letter in self.data['letters']:
-                        if (winkel == self.data['letters'][letter]['winkel']):
-                            status = False
-                            break
-                    self.data['letters'][this_letter] = {
-                        'schnittpunkt': s,
-                        'vectors': {
-                            'u1': u1,
-                            'u2': u2,
-                            'v1': v1,
-                            'v2': v2
-                        },
-                        'winkel': winkel
-                    }
-                else:
-                    status = False
-        return status
-
-    def generate_alphabet_numbers(self):
-        for letter in self.alphabet:
-            while True:
-                status = self.calculate_letter(letter)
-                if (status == True):
-                    break
-        pprint.pprint(self.data['letters'])
-            
-    def encrypt_message(self):
-        nachricht = input("Nachricht> ").upper()
-        encrypted_elements = []
-        key_data = {}
-        for letter in self.data['letters']:
-            key_data[letter] = self.data['letters'][letter]['winkel']
-        for letter in nachricht:
-            vectors = self.data['letters'][letter]['vectors']
-            for vector in vectors:
-                this_vector_args = "".join(f"{vectors[vector]}".split("("))
-                this_vector = "".join(this_vector_args.split(")"))
-                encrypted_elements.append(f"{this_vector}")
-        encrypted_msg = ";".join(encrypted_elements)
-        key = ""
-        for element in key_data:
-            key = key+f"{element}-{key_data[element]}+"
-        print(f"[+] Encrypted-Message: {encrypted_msg}")
-        print(f"[+] Key: {key}")
-        try:
-            dateiname = f"encrypted_message_{len(nachricht)}.txt"
-            file = open(dateiname,'a')
-            file.write(encrypted_msg+"\n"+"\n"+key)
-            file.close()
-            print(f"[+] Abgespeichert in {dateiname}")
-        except Exception as error:
-            print("[!] Datei konnte nicht abgespeichert werden!")
-            print(error)
-
-    def run(self):
-        option = input("d[ecrypt]|e[ncrypt]: ")
-        if (option == "e"):
-            self.generate_alphabet_numbers()
-            self.encrypt_message()
-        else:
-            self.decrypt_message()
-        
-    def decrypt_message(self):
-        encrypted_msg = input("Verschlüsselte-Nachricht> ")
-        key = input("Schlüssel> ")
-        key_args = key.split("+")
-        key_elements = {}
-        for arg in key_args:
-            elements = arg.split("-")
-            if (len(elements) > 1): 
-                key_elements[elements[0]] = int(elements[1])
-        args = "".join(encrypted_msg.split(" "))
-        msg_elements = args.split(";")
-        elements = {}
-        i = 1
-        counter = {str(i):0}
-        elements[i] = []
-        for element in msg_elements:
-            this_args = element.split(",")
-            if (counter[str(i)] <= 3):
-                elements[i].append((int(this_args[0]),int(this_args[1])))
+                    # print("BOTH SOLUTIONS ARE NOT THE SAME")
+                    pass
             else:
-                i += 1
-                counter[str(i)] = 0
-                elements[i] = [(int(this_args[0]),int(this_args[1]))]
-            counter[str(i)] += 1
-        #pprint.pprint(elements)
-        encrypted_msg_elements = []
-        for element in elements:
-            u1 = elements[element][0]
-            u2 = elements[element][1]
-            v1 = elements[element][2]
-            v2 = elements[element][3]
-            (r, s) = sympy.symbols("r s")
-            equation_1 = sympy.Eq(
-                (u1[0]+v1[0]*s),
-                (u2[0]+v2[0]*r)
-            )
-            equation_2 = sympy.Eq(
-                (u1[1]+v1[1]*s),
-                (u2[1]+v2[1]*r)
-            )
-            solution = sympy.solve((equation_1,equation_2),(r,s))
-            this_s = solution[s]
-            #print(solution)
-            s = (
-                u1[0]+this_s*v1[0],
-                u1[1]+this_s*v1[1]
-            )
-            F = v1[0]*v2[0]+v1[1]*v2[1]
-            if (F < 0):
-                F = -F
-            len_vec = (
-                math.sqrt(v1[0]**2+v1[1]**2)*math.sqrt(v2[0]**2+v2[1]**2)
-            )
-            winkel_rad = math.acos(F/len_vec) #in rad
-            #convert in degree (360° = 2*PI)
-            winkel = round(winkel_rad*(360/(2*math.pi)))#in Degree
-            encrypted_msg_elements.append(winkel)
+                # self.console.log("[red]NO SOLUTION: ",solution)
+                pass
+        return (vectors,angle)
 
-        decrypted_msg_elements = []
-        for winkel in encrypted_msg_elements:
-            for element in key_elements:
-                if (key_elements[element] == winkel):
-                    decrypted_msg_elements.append(element)
+    def check_if_angle_is_unique(self,angle):
+        state = True
+        for element in self.calculated:
+            if (element != "vectors"):
+                if (angle == self.calculated[element]['angle']):
+                    state = False
                     break
-        decrypted_msg = "".join(decrypted_msg_elements)
-        print(f"[+] Decrypted Message> {decrypted_msg}")
+        return state
+
+    def encrypt(self,message):
+        self.console.log(f"[yellow]Encrypting message '{message}' ({len(message)} Bytes)")
+        with self.console.status(f"[bold yellow]Generating angles for {len(self.all_characters)} characters...") as status:
+            for element in self.all_characters:
+                failed_counter = 0
+                while (self.encr_state == True):
+                    try:
+                        (vectors,angle) = self.calculate_angle(element)
+                        if (angle != None and self.check_if_angle_is_unique(angle) == True):
+                            self.angles_counter += 1
+                            if ("." in str(angle)):
+                                args = str(angle).split(".")
+                                this_angle = "".join(args)+str(len(args[0]))
+                            else:
+                                this_angle = angle
+                            this_angle = str(this_angle)
+                            self.calculated[element]['angle'] = this_angle
+                            self.calculated[element]['vectors'] = {}
+                            for n in vectors: self.calculated[element]['vectors'][n] = vectors[n]
+                            vectors.clear()
+                            break
+                        else:
+                            if (self.max_failed_number != "infinite"):
+                                failed_counter += 1
+                                if (failed_counter > self.max_failed_number):
+                                    self.encr_state = False
+                                    self.console.log(f"[red]Too many errors while calculating angle for character '{element}'")
+                                    break
+                    except KeyboardInterrupt:
+                        self.console.log("[red]Keyboard interrupt")
+                        self.encr_state = False
+                        break
+            if (len(self.calculated) > 0 and self.encr_state == True):
+                self.console.log(f"[green]Calculated angles for {self.angles_counter} characters")
+                encrypted_msg_vectors = []
+                for element in message:
+                    for character in self.calculated:
+                        if (character == element):
+                            for vector in self.calculated[character]['vectors']:
+                                encrypted_msg_vectors.append(self.calculated[character]['vectors'][vector])
+                (key,encrypted_msg) = ("","")
+                vectors = [f"{vector[0]}-{vector[1]}-" for vector in encrypted_msg_vectors]
+                encrypted_msg = "".join(vectors)
+                for element in self.calculated:
+                    key = key+element+":*"+self.calculated[element]['angle']+"x."
+                # self.console.log(f"[bold green]Key:[cyan] {key}")
+                # self.console.log(f"[bold green]Encrypted-Message:[cyan] {encrypted_msg}")
+                user_renderables = [Panel(f"Saved message & key in {self.save_filepath}",expand = True)]
+                self.console.print(Columns(user_renderables))
+                with open(self.save_filepath,'w') as file:
+                    file.write(f"<<MESSAGE>>\n{encrypted_msg}")
+                    file.write(f"\n\n<<KEY>>\n{key}_FAST_{self.fast_mode}\n")
+            else:
+                self.console.log(f"[red]Could not calculate angles for {len(self.all_characters)-self.angles_counter} characters!")
+                self.encr_state = False
+        if (self.encr_state == False):
+            self.console.log(f"[bold red]Encryption failed!")
+        else:
+            self.console.log(f"[bold green]Encrypted message successfully!")
+        self.calculated.clear()
+
+
+class Decryption():
+    def __init__(self,console,all_characters,vector_min_num,vector_max_num,max_failed_number,save_filepath):
+        (self.console,self.all_characters) = (console,all_characters)
+        (self.vector_min_num,self.vector_max_num,self.max_failed_number,self.save_filepath) = (vector_min_num,
+            vector_max_num,max_failed_number,save_filepath
+        )
+        self.decr_state = True
+        self.calculated = {}
+        self.fast_mode = False
+
+    def calculate_angles(self,vectors):
+        state = True
+        this_vectors = vectors
+        for vectors in this_vectors:
+            this_using_element_vectors = vectors
+            self.calculated[vectors] = {}
+            if (len(vectors) > 0):
+                vectors = this_vectors[vectors]
+                # equate straight line equations
+                (r,s) = sympy.symbols("r s") # creating symbols for the equation
+                equation_a = sympy.Eq((vectors['s_v_1'][0]+r*vectors['d_v_1'][0]),
+                    (vectors['s_v_2'][0]+s*vectors['d_v_2'][0]))
+                equation_b = sympy.Eq((vectors['s_v_1'][1]+r*vectors['d_v_1'][1]),
+                    (vectors['s_v_2'][1]+s*vectors['d_v_2'][1]))
+                solution = sympy.solve((equation_a,equation_b),(r,s))
+                if (len(solution) > 1): # check if there is any solution
+                    # check if both solutions are the same
+                    if (
+                        (vectors['s_v_1'][0]+solution[r]*vectors['d_v_1'][0]) == (vectors['s_v_2'][0]+solution[s]*vectors['d_v_2'][0]) and (vectors['s_v_1'][1]+solution[r]*vectors['d_v_1'][1]) == (vectors['s_v_2'][1]+solution[s]*vectors['d_v_2'][1])):
+                        # found intersection
+                        s = (vectors['d_v_1'][0]*vectors['d_v_2'][0]+vectors['d_v_1'][1]*vectors['d_v_2'][1]) # calculating the scalar product of the direction vectors 'd_v_1' & 'd_v_2'
+                        one = ((vectors['d_v_1'][0])**2+(vectors['d_v_1'][1])**2)
+                        two = ((vectors['d_v_2'][0])**2+(vectors['d_v_2'][1])**2)
+                        if (one >= 0 & two >= 0): # check if the square roote is not negative
+                            p = ((math.sqrt(one))*(math.sqrt(two))) # calculating the product of the two lengths
+                            # calculating angle between the line-equations
+                            a_rad = math.acos((s)/(p)) # in RAD
+                            a_deg = (a_rad*(360/(2*math.pi))) # in DEGREE
+                            if (self.fast_mode == True):
+                                a_deg = round(a_deg,5)
+                            else:
+                                a_deg = round(a_deg,15)
+                            angle = a_deg
+                            self.calculated[this_using_element_vectors]['angle'] = angle
+                        else:
+                            state = False
+                    else:
+                        state = False
+                else:
+                    state = False
+        return state
+
+    def decrypt(self,encrypted_message):
+        self.console.log(f"[green]Decrypting message '{encrypted_message}' ({len(encrypted_message)} Bytes)...")
+        try:
+            key = input("Please insert key> ")
+            print("")
+            with self.console.status(f"[bold yellow]Reading encryption-key...") as status:
+                if ("x." in key and ":*" in key and "_FAST_" in key):
+                    key_elements = {}
+                    args = key.split("x.")
+                    for arg in args:
+                        if (arg != "" and arg != " " and "_FAST_" not in arg):
+                            elements = arg.split(":*")
+                            this_angle = elements[1]
+                            comma_pos = this_angle[len(this_angle)-1]
+                            this_angle = this_angle[:-1]
+                            angle_elements = [element for element in this_angle]
+                            angle_elements.insert(int(comma_pos),".")
+                            this_angle = float("".join(angle_elements))
+                            key_elements[elements[0]] = this_angle
+                        if ("_FAST_" in arg):
+                            self.fast_mode = arg.split("_FAST_")[1]
+                else:
+                    self.console.log(f"[red]Invalid Key!")
+                    self.decr_state = False
+            if (self.decr_state == True):
+                self.console.log(f"[green]The specified key was accepted ({len(key)} Bytes)")
+                with self.console.status(f"[bold yellow]Reading encrypted message...") as status:
+                    if ("-" in encrypted_message):
+                        args = encrypted_message.split("-")
+                        elements = [
+                            'd_v_1',
+                            's_v_1',
+                            's_v_2',
+                            'd_v_2'
+                        ]
+                        this_vectors = {}
+                        counter = 1
+                        v_counter = 1
+                        for arg in args:
+                            if (arg != "" and arg != " "):
+                                if (v_counter == 1):
+                                    this_vectors[str(counter)] = []
+                                    this_vectors[str(counter)].append(arg)
+                                else:
+                                    this_vectors[str(counter)].append(arg)
+                                v_counter += 1
+                                if (v_counter == 9):
+                                    counter += 1
+                                    v_counter = 1
+                        vectors = {}
+                        for element in this_vectors:
+                            v_counter = 0
+                            counter = 0
+                            vectors[element] = {}
+                            for coordinate in this_vectors[element]:
+                                if (counter == 0):
+                                    vectors[element][elements[v_counter]] = []
+                                vectors[element][elements[v_counter]].append(int(coordinate))
+                                counter += 1
+                                if (counter == 2):
+                                    v_counter += 1
+                                    counter = 0
+                        self.console.log("[green]Found vectors in message")
+                        state = self.calculate_angles(vectors)
+                        self.console.log("[green]Calculated angle of each character")
+                        if (state == True):
+                            decrypted_msg = []
+                            for element in self.calculated:
+                                this_angle = self.calculated[element]['angle']
+                                for key_element in key_elements:
+                                    if (key_elements[key_element] == this_angle):
+                                        decrypted_msg.append(key_element)
+                            decrypted_msg = "".join(decrypted_msg)
+                            user_renderables = [Panel(f"[bold cyan]{decrypted_msg}",expand = True)]
+                            self.console.print(Columns(user_renderables))
+                        else:
+                            self.console.log(f"[red]Invalid message! [bold red](vectors)")
+                            self.decr_state = False
+                    else:
+                        self.console.log(f"[red]Invalid message!")
+                        self.decr_state = False
+        except KeyboardInterrupt as e:
+            print("")
+            self.console.log("[red]Keyboard interrupt")
+            self.decr_state = False
+        if (self.decr_state == True):
+            self.console.log("[bold green]Decrypted message successfully!")
+        else:
+            self.console.log("[bold red]Decryption failed!")
+        self.calculated.clear()
+
+console = Console()
+#
+default_all_characters = string.ascii_letters+string.punctuation+" "
+path = os.path.realpath(__file__).split(__file__)[0]
+(default_vector_min_number,default_vector_max_number,default_max_failed_number,
+    default_filepath_to_save_msg
+) = (0,999,"infinite",f'{path}msg.txt')
+parser = argparse.ArgumentParser()
+parser.add_argument('-e','--encrypt', action="store_true", help="Encrypts plaintext to encrypted message")
+parser.add_argument('-d','--decrypt', action="store_true", help="Decrypts encrypted message to plaintext")
+parser.add_argument('-m','--message', help="Message that should be encrypted/decrypted", type = str)
+parser.add_argument('-s','--save', help=f"File path where the message is to be saved (Default = {default_filepath_to_save_msg})", type=str,
+    default = default_filepath_to_save_msg
+)
+parser.add_argument('-i','--min',help=f"Minimal number of vector coordinate (Default = {default_vector_min_number})",
+    default = default_vector_min_number, type = int
+)
+parser.add_argument('-a','--max',help=f"Maximal number of vector coordinate (Default = {default_vector_max_number})",
+    default = default_vector_max_number, type = int
+)
+parser.add_argument('-f','--max_failed',help=f"Maximum failed number of attempts to find an angle (Default = {default_max_failed_number})",
+    default = default_max_failed_number, type = str
+)
+parser.add_argument('-u','--fast',help="Activates the fast-mode to encrypt a message (Default = deactivated)",
+    action = "store_true"
+)
+args = parser.parse_args()
+try:
+    max_failed_num = int(args.max_failed)
+except Exception as error:
+    if (args.max_failed.lower() != "infinite"):
+        max_failed_num = False
+        console.log(f"[red]{error}")
+    else:
+        max_failed_num = args.max_failed.lower()
+if (args.encrypt == False and args.decrypt == False or args.message == "" or args.message == None or max_failed_num == False):
+    parser.print_help()
+    sys.exit()
+#
+
+if (args.fast == True):
+    console.log(f"[bold red]Fast-mode is activated. Only as many elements are generated as the message is long!")
+    console.log(f"[bold red]In Fast-mode, the decimal places after the point are also shorter!")
+    all_characters = [element for element in args.message]
+else:
+    all_characters = default_all_characters+string.digits
+(vector_min_num,vector_max_num,max_failed_number) = (args.min,args.max,max_failed_num)
 
 if (__name__ == '__main__'):
-    amme = AMME()
-    amme.run()
-
-
+    os.system("clear") # 
+    if (args.encrypt == True):
+        encr = Encryption(console,all_characters,vector_min_num,vector_max_num,max_failed_number,args.save,args.fast)
+        encr.encrypt(args.message)
+    if (args.decrypt == True):
+        decr = Decryption(console,all_characters,vector_min_num,vector_max_num,max_failed_number,args.save)
+        decr.decrypt(args.message)
