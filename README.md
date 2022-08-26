@@ -8,17 +8,50 @@
 
 * :point_right: [Explanation](#explanation)
 * :point_right: [Installation](#installation)
+* :point_right: [Example] (#example)
 * :point_right: [ToDo](#todo)
 * :point_right: [Suggestions & Reports](#suggestions--reports)
 
 ## Explanation
 
-:small_orange_diamond: **Download MongoDB**
- 
+This encryption uses analytic geometry in two-dimensional space. 
+
+### Encryption
+
+It (pseudo-)randomly generates 4 vectors for each character. Two straight line equations are created from these vectors, which are then checked for collinearity. If the direction vectors of the straight line equation are multiples of each other, new vectors are generated and checked until this case no longer occurs. Furthermore, an intersection of both straight lines is calculated in order to then calculate the intersection angle. Finally, the intersection angles are assigned to the characters and the previously typed message is replaced with the previously used vectors.
+
+### Decryption
+
+When it comes to decryption, the above part is pretty much the same. Only that at the beginning the key and the encrypted message for the calculation "must be prepared". Additional character strings and information were appended to the encryption for "further protection". Finally, the vectors read out from the message are used to calculate the intersection angles and finally form a decrypted message thanks to the key.
+
+## Installation
+
+:small_orange_diamond: **Download Requirements**
+
+    pip3 install sympy rich
+    
+:small_orange_diamond: **Encrypt message** (Syntax without advanced settings)
+
+    python3 amme.py -e -m "[YOUR MESSAGE]"
+    
+:small_orange_diamond: **Decrypt message** (Syntax without advanced settings)
+
+    python3 amme.py -d -m "[YOUR ENCRYPTED MESSAGE]"
+    
+:small_orange_diamond: **Asking for help**
+
+    python3 amme.py --help
+
+## Example
+
+    python3 amme.py --encryption --message "SECRET MESSAGE"
+    
+    
 
 ## ToDo
 
 - [ ] Add 3-Dimensional vectors
+- [ ] Add hashlib
 
 ## Suggestions & Reports
 
