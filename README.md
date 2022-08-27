@@ -28,8 +28,10 @@ When it comes to decryption, the above part is pretty much the same. Only that a
 
 :small_orange_diamond: **Download Repository & Requirements**
     
-    https://github.com/Pulsar7/A.M.M.E.git
+    sudo apt install git
+    git clone https://github.com/Pulsar7/A.M.M.E.git
     pip3 install sympy rich
+    cd A.M.M.E/
     
 :small_orange_diamond: **Asking for help**
 
