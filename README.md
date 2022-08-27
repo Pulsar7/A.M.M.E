@@ -26,17 +26,10 @@ When it comes to decryption, the above part is pretty much the same. Only that a
 
 ## Installation
 
-:small_orange_diamond: **Download Requirements**
-
+:small_orange_diamond: **Download Repository & Requirements**
+    
+    https://github.com/Pulsar7/A.M.M.E.git
     pip3 install sympy rich
-    
-:small_orange_diamond: **Encrypt message** (Syntax without advanced settings)
-
-    python3 amme.py -e -m "[YOUR MESSAGE]"
-    
-:small_orange_diamond: **Decrypt message** (Syntax without advanced settings)
-
-    python3 amme.py -d -m "[YOUR ENCRYPTED MESSAGE]"
     
 :small_orange_diamond: **Asking for help**
 
